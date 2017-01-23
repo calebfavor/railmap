@@ -1,0 +1,17 @@
+{
+  "name": "railroad/railmap",
+  "description": "Entity System",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Caleb Favor",
+      "email": "calebfavor@gmail.com"
+    }
+  ],
+  "minimum-stability": "dev",
+  "require": {
+    "php": ">=5.4.0",
+    "laravel/framework": "~5.3",
+    "doctrine/dbal": "^2.5"
+  }
+}
