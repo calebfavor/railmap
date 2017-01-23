@@ -14,7 +14,9 @@
     "laravel/framework": "~5.3",
     "doctrine/dbal": "^2.5"
   },
-  "psr-4": {
-    "Railroad\\Railmap\\": "src/"
+  "autoload": {
+    "psr-4": {
+      "Railroad\\Railmap\\": "src/"
+    }
   }
 }
