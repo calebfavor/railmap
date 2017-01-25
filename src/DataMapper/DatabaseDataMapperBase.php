@@ -37,6 +37,11 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
         $this->databaseManager = app(DatabaseManager::class);
     }
 
+    public function mapFrom()
+    {
+        return $this->mapTo();
+    }
+
     /**
      * @param int|int[] $idOrIds
      * @return null|EntityInterface|EntityInterface[]
@@ -171,7 +176,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
      */
     public function fill(EntityInterface $entity, array $data, $dataKeyPrefix = '')
     {
-        foreach ($this->map() as $entityPropertyName => $extractedName) {
+        foreach ($this->mapFrom() as $entityPropertyName => $extractedName) {
             $setMethodName = 'set' . ucwords($entityPropertyName);
 
             if (method_exists($entity, $setMethodName) && isset($data[$dataKeyPrefix . $extractedName])) {
@@ -192,7 +197,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
     {
         $extractedData = [];
 
-        foreach ($this->map() as $entityPropertyName => $extractedName) {
+        foreach ($this->mapTo() as $entityPropertyName => $extractedName) {
             $getMethodName = 'get' . ucwords($entityPropertyName);
 
             if (method_exists($entity, $getMethodName)) {

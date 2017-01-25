@@ -5,17 +5,17 @@ namespace Railroad\Railmap\Entity\Properties;
 trait Versioned
 {
     /**
-     * @var int
+     * @var int|null
      */
     protected $versionMasterId;
 
     /**
-     * @var string
+     * @var string|null
      */
     protected $versionSavedAt;
 
     /**
-     * @return int
+     * @return int|null
      */
     public function getVersionMasterId()
     {
@@ -23,7 +23,7 @@ trait Versioned
     }
 
     /**
-     * @param int $versionMasterId
+     * @param int|null $versionMasterId
      */
     public function setVersionMasterId($versionMasterId)
     {
@@ -31,7 +31,7 @@ trait Versioned
     }
 
     /**
-     * @return string
+     * @return string|null
      */
     public function getVersionSavedAt()
     {
@@ -39,7 +39,7 @@ trait Versioned
     }
 
     /**
-     * @param string $versionSavedAt
+     * @param string|null $versionSavedAt
      */
     public function setVersionSavedAt($versionSavedAt)
     {

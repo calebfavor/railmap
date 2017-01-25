@@ -29,11 +29,25 @@ interface DataMapperInterface
      * Must return array with keys as the entity attribute names and values as the extracted/column names.
      * Use a pipe to denote a linked entity attribute.
      *
+     * This is used when pulling entities from the data source.
+     *
      * Ex. return ['firstName' => 'first_name', 'user' => 'user_id];
      *
      * @return []
      */
-    public function map();
+    public function mapFrom();
+
+    /**
+     * Must return array with keys as the entity attribute names and values as the extracted/column names.
+     * Use a pipe to denote a linked entity attribute.
+     *
+     * This is used when sending entity data back to the source (extracting).
+     *
+     * Ex. return ['firstName' => 'first_name', 'user' => 'user_id];
+     *
+     * @return []
+     */
+    public function mapTo();
 
     /**
      * Should a new instance of this data mappers default entity instance.
