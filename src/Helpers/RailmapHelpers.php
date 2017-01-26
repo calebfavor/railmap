@@ -2,10 +2,12 @@
 
 namespace Railroad\Railmap\Helpers;
 
+use Railroad\Railmap\Entity\EntityInterface;
+
 class RailmapHelpers
 {
     /**
-     * @param array $entities
+     * @param EntityInterface[] $entities
      * @param $getMethod
      * @return array
      */
@@ -20,5 +22,53 @@ class RailmapHelpers
         }
 
         return $values;
+    }
+
+    /**
+     * @param EntityInterface[] $entities
+     * @param $attribute
+     * @param $direction
+     * @return array|EntityInterface[]
+     */
+    public static function sortEntitiesByIntAttribute(array $entities, $attribute, $direction)
+    {
+        usort(
+            $entities,
+            function ($entityA, $entityB) use ($attribute, $direction) {
+                $getter = 'get' . ucwords($attribute);
+
+                if ($direction == 'desc') {
+                    return $entityB->$getter() - $entityA->$getter();
+                } else {
+                    return $entityA->$getter() - $entityB->$getter();
+                }
+            }
+        );
+
+        return $entities;
+    }
+
+    /**
+     * @param EntityInterface[] $entities
+     * @param $attribute
+     * @param $direction
+     * @return array|EntityInterface[]
+     */
+    public static function sortEntitiesByDateAttribute(array $entities, $attribute, $direction)
+    {
+        usort(
+            $entities,
+            function ($entityA, $entityB) use ($attribute, $direction) {
+                $getter = 'get' . ucwords($attribute);
+
+                if ($direction == 'desc') {
+                    return strcasecmp($entityB->$getter(), $entityA->$getter());
+                } else {
+                    return strcasecmp($entityA->$getter(), $entityB->$getter());
+                }
+            }
+        );
+
+        return $entities;
     }
 }
