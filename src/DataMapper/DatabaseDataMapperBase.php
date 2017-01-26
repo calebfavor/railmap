@@ -51,7 +51,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
         if (is_array($idOrIds)) {
             $entities = [];
 
-            $rows = $this->gettingQuery()->whereIn('id', $idOrIds)->get()->toArray();
+            $rows = $this->gettingQuery()->whereIn($this->table . '.id', $idOrIds)->get()->toArray();
 
             foreach ($rows as $row) {
                 $entity = $this->entity();
@@ -71,7 +71,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
             return $this->processWithLinks($orderedEntities);
         }
 
-        $row = $this->gettingQuery()->where('id', '=', $idOrIds)->first();
+        $row = $this->gettingQuery()->where($this->table . '.id', '=', $idOrIds)->first();
 
         if (!empty($row)) {
             $entity = $this->entity();
@@ -255,7 +255,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
             } else {
                 $oldEntity = $this->get($entity->getId());
 
-                $this->settingQuery()->where(['id' => $entity->getId()])->take(1)->update(
+                $this->settingQuery()->where([$this->table . '.id' => $entity->getId()])->take(1)->update(
                     $this->beforePersist($this->extract($entity))
                 );
             }
@@ -295,7 +295,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
             }
         }
 
-        $this->settingQuery()->whereIn('id', $idsToDelete)->delete();
+        $this->settingQuery()->whereIn($this->table . '.id', $idsToDelete)->delete();
 
         // Delete all pivot table entries
         foreach ($entityOfEntitiesOrIdIds as $entity) {
