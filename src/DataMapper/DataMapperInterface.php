@@ -57,12 +57,28 @@ interface DataMapperInterface
     public function entity();
 
     /**
-     * This must return this data mappers query object.
+     * This must return this data mappers query object, usually selecting the table.
      * Ex. \Illuminate\Database\Query\Builder
      *
      * @return mixed
      */
-    public function query();
+    public function baseQuery();
+
+    /**
+     * This must return this data mappers query object for pulling data, joins go here.
+     * Ex. \Illuminate\Database\Query\Builder
+     *
+     * @return mixed
+     */
+    public function gettingQuery();
+
+    /**
+     * This must return this data mappers query object for saving data, usually same as base query.
+     * Ex. \Illuminate\Database\Query\Builder
+     *
+     * @return mixed
+     */
+    public function settingQuery();
 
     /**
      * This must return the dispatched used to trigger events.

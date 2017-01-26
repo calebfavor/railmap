@@ -51,7 +51,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
         if (is_array($idOrIds)) {
             $entities = [];
 
-            $rows = $this->query()->whereIn('id', $idOrIds)->get()->toArray();
+            $rows = $this->gettingQuery()->whereIn('id', $idOrIds)->get()->toArray();
 
             foreach ($rows as $row) {
                 $entity = $this->entity();
@@ -71,7 +71,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
             return $this->processWithLinks($orderedEntities);
         }
 
-        $row = $this->query()->where('id', '=', $idOrIds)->first();
+        $row = $this->gettingQuery()->where('id', '=', $idOrIds)->first();
 
         if (!empty($row)) {
             $entity = $this->entity();
@@ -90,7 +90,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
      */
     public function getWithQuery(callable $queryCallback, $forceArrayReturn = false)
     {
-        $rows = $queryCallback($this->query());
+        $rows = $queryCallback($this->gettingQuery());
 
         if (is_array($rows) || $rows instanceof ArrayAccess) {
             $entities = [];
@@ -120,9 +120,25 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
     /**
      * @return Builder
      */
-    public function query()
+    public function baseQuery()
     {
         return $this->databaseManager->connection()->query()->from($this->table);
+    }
+
+    /**
+     * @return Builder
+     */
+    public function gettingQuery()
+    {
+        return $this->baseQuery();
+    }
+
+    /**
+     * @return Builder
+     */
+    public function settingQuery()
+    {
+        return $this->baseQuery();
     }
 
     /**
@@ -235,17 +251,17 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
 
                 $oldEntity = null;
 
-                $this->query()->insert($this->beforePersist($this->extract($entity)));
+                $this->settingQuery()->insert($this->beforePersist($this->extract($entity)));
             } else {
                 $oldEntity = $this->get($entity->getId());
 
-                $this->query()->where(['id' => $entity->getId()])->take(1)->update(
+                $this->settingQuery()->where(['id' => $entity->getId()])->take(1)->update(
                     $this->beforePersist($this->extract($entity))
                 );
             }
 
             if (empty($entity->getId())) {
-                $entity->setId($this->query()->getConnection()->getPdo()->lastInsertId('id'));
+                $entity->setId($this->settingQuery()->getConnection()->getPdo()->lastInsertId('id'));
             }
 
             // todo: event
@@ -279,7 +295,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
             }
         }
 
-        $this->query()->whereIn('id', $idsToDelete)->delete();
+        $this->settingQuery()->whereIn('id', $idsToDelete)->delete();
 
         // Delete all pivot table entries
         foreach ($entityOfEntitiesOrIdIds as $entity) {
