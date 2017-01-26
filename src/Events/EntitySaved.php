@@ -4,7 +4,7 @@ namespace Railroad\Railmap\Events;
 
 use Railroad\Railmap\Entity\EntityInterface;
 
-class EntitySaved
+class EntitySaved implements EntityEventInterface
 {
     /**
      * @var EntityInterface
