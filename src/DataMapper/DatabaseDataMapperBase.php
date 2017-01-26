@@ -51,7 +51,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
         if (is_array($idOrIds)) {
             $entities = [];
 
-            $rows = $this->gettingQuery()->whereIn($this->table . '.id', $idOrIds)->get()->toArray();
+            $rows = $this->gettingQuery()->whereIn('id', $idOrIds)->get()->toArray();
 
             foreach ($rows as $row) {
                 $entity = $this->entity();
@@ -71,7 +71,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
             return $this->processWithLinks($orderedEntities);
         }
 
-        $row = $this->gettingQuery()->where($this->table . '.id', '=', $idOrIds)->first();
+        $row = $this->gettingQuery()->where('id', '=', $idOrIds)->first();
 
         if (!empty($row)) {
             $entity = $this->entity();
@@ -122,7 +122,19 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
      */
     public function baseQuery()
     {
-        return $this->databaseManager->connection()->query()->from($this->table);
+        $query = $this->databaseManager->connection()->query()->from($this->table);
+
+        // soft deletes
+        if (isset(array_values($this->mapTo())['deleted_at'])) {
+            $query->whereNull('deleted_at');
+        }
+
+        // versioned
+        if (isset(array_values($this->mapTo())['version_master_id'])) {
+            $query->whereNull('version_master_id');
+        }
+
+        return $query;
     }
 
     /**
@@ -255,7 +267,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
             } else {
                 $oldEntity = $this->get($entity->getId());
 
-                $this->settingQuery()->where([$this->table . '.id' => $entity->getId()])->take(1)->update(
+                $this->settingQuery()->where(['id' => $entity->getId()])->take(1)->update(
                     $this->beforePersist($this->extract($entity))
                 );
             }
@@ -295,7 +307,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
             }
         }
 
-        $this->settingQuery()->whereIn($this->table . '.id', $idsToDelete)->delete();
+        $this->settingQuery()->whereIn('id', $idsToDelete)->delete();
 
         // Delete all pivot table entries
         foreach ($entityOfEntitiesOrIdIds as $entity) {
