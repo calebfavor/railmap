@@ -13,6 +13,10 @@ use Railroad\Railmap\Entity\Links\LinkFactory;
 use Railroad\Railmap\Entity\Links\ManyToMany;
 use Railroad\Railmap\Entity\Links\OneToMany;
 use Railroad\Railmap\Entity\Links\OneToOne;
+use Railroad\Railmap\Events\EntityCreated;
+use Railroad\Railmap\Events\EntityDestroyed;
+use Railroad\Railmap\Events\EntitySaved;
+use Railroad\Railmap\Events\EntityUpdated;
 use Railroad\Railmap\Helpers\RailmapHelpers;
 
 abstract class DatabaseDataMapperBase implements DataMapperInterface
@@ -276,8 +280,13 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
                 $entity->setId($this->settingQuery()->getConnection()->getPdo()->lastInsertId('id'));
             }
 
-            // todo: event
-//            $this->dispatcher()->fire(new EntitySaved($entity, $oldEntity));
+            $this->dispatcher()->fire(new EntitySaved($entity, $oldEntity));
+
+            if (!is_null($oldEntity)) {
+                $this->dispatcher()->fire(new EntityUpdated($entity, $oldEntity));
+            } else {
+                $this->dispatcher()->fire(new EntityCreated($entity, $oldEntity));
+            }
         }
     }
 
@@ -323,8 +332,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
         }
 
         foreach ($entityOfEntitiesOrIdIds as $entity) {
-            // todo: event
-//            $this->dispatcher()->fire(new EntityDestroyed($entity));
+            $this->dispatcher()->fire(new EntityDestroyed($entity));
         }
     }
 
