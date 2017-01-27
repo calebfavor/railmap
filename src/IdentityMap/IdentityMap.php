@@ -8,11 +8,11 @@ use Railroad\Railmap\Exceptions\EntityHasNoIdentifierException;
 class IdentityMap
 {
     /**
-     * Objects are stored by: $map[full/class/name][id] = $object;
+     * Objects are stored by: map[full/class/name][id] = $object;
      *
      * @var array
      */
-    private static $map = [];
+    private $map = [];
 
     /**
      * @param $id
@@ -44,7 +44,7 @@ class IdentityMap
         $entityClass = get_class($entity);
 
         if (empty($this->get($entityClass, $id))) {
-            self::$map[$entityClass][$id] = $entity;
+            $this->map[$entityClass][$id] = $entity;
         }
     }
 
@@ -55,8 +55,8 @@ class IdentityMap
      */
     public function get($entityClass, $id)
     {
-        if (isset(self::$map[$entityClass][$id])) {
-            return self::$map[$entityClass][$id];
+        if (isset($this->map[$entityClass][$id])) {
+            return $this->map[$entityClass][$id];
         }
 
         return null;
@@ -64,8 +64,8 @@ class IdentityMap
 
     public function remove($entityClass, $id)
     {
-        if (isset(self::$map[$entityClass][$id])) {
-            unset(self::$map[$entityClass][$id]);
+        if (isset($this->map[$entityClass][$id])) {
+            unset($this->map[$entityClass][$id]);
         }
     }
 }
