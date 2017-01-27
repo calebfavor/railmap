@@ -31,13 +31,6 @@ abstract class EntityBase implements EntityInterface
     protected $owningDataMapper;
 
     /**
-     * EntityBase constructor.
-     */
-    public function __construct()
-    {
-    }
-
-    /**
      * @return int
      */
     public function getId()
