@@ -18,6 +18,7 @@ use Railroad\Railmap\Events\EntityDestroyed;
 use Railroad\Railmap\Events\EntitySaved;
 use Railroad\Railmap\Events\EntityUpdated;
 use Railroad\Railmap\Helpers\RailmapHelpers;
+use Railroad\Railmap\IdentityMap\IdentityMap;
 
 abstract class DatabaseDataMapperBase implements DataMapperInterface
 {
@@ -25,6 +26,11 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
      * @var $databaseManager DatabaseManager
      */
     protected $databaseManager;
+
+    /**
+     * @var $identityMap IdentityMap
+     */
+    protected $identityMap;
 
     /**
      * @var string[]
@@ -39,6 +45,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
     public function __construct()
     {
         $this->databaseManager = app(DatabaseManager::class);
+        $this->identityMap = app(IdentityMap::class);
     }
 
     public function mapFrom()
@@ -61,6 +68,8 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
                 $entity = $this->entity();
                 $entity->fill($this->afterGet((array)$row));
 
+                $entity = $this->identityMap->getOrStore($entity->getId(), $entity);
+
                 $entities[$entity->getId()] = $entity;
             }
 
@@ -80,6 +89,8 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
         if (!empty($row)) {
             $entity = $this->entity();
             $entity->fill($this->afterGet((array)$row));
+
+            $entity = $this->identityMap->getOrStore($entity->getId(), $entity);
 
             return $this->processWithLinks($entity);
         }
@@ -103,6 +114,8 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
                 $entity = $this->entity();
                 $entity->fill($this->afterGet((array)$row));
 
+                $entity = $this->identityMap->getOrStore($entity->getId(), $entity);
+
                 $entities[] = $entity;
             }
 
@@ -111,6 +124,8 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
             if (!empty($rows)) {
                 $entity = $this->entity();
                 $entity->fill($this->afterGet((array)$rows));
+
+                $entity = $this->identityMap->getOrStore($entity->getId(), $entity);
 
                 $entity = $this->processWithLinks($entity);
 
@@ -253,6 +268,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
             $entityOrEntities = [$entityOrEntities];
         }
 
+        /** @var EntityInterface|EntityInterface[] $entityOrEntities */
         $entityOrEntities = array_filter($entityOrEntities);
 
         foreach ($entityOrEntities as $entity) {
@@ -268,16 +284,16 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
                 $oldEntity = null;
 
                 $this->settingQuery()->insert($this->beforePersist($this->extract($entity)));
+
+                $entity->setId($this->settingQuery()->getConnection()->getPdo()->lastInsertId('id'));
+
+                $this->identityMap->store($entity, $entity->getId());
             } else {
                 $oldEntity = $this->get($entity->getId());
 
                 $this->settingQuery()->where([$this->table . '.id' => $entity->getId()])->take(1)->update(
                     $this->beforePersist($this->extract($entity))
                 );
-            }
-
-            if (empty($entity->getId())) {
-                $entity->setId($this->settingQuery()->getConnection()->getPdo()->lastInsertId('id'));
             }
 
             $this->dispatcher()->fire(new EntitySaved($entity, $oldEntity));
@@ -316,10 +332,18 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
             }
         }
 
+        foreach ($idsToDelete as $idToDelete) {
+            $this->identityMap->remove(get_class($this->entity()), $idToDelete);
+        }
+
         $this->settingQuery()->whereIn($this->table . '.id', $idsToDelete)->delete();
 
         // Delete all pivot table entries
         foreach ($entityOfEntitiesOrIdIds as $entity) {
+            if (!is_object($entity)) {
+                continue;
+            }
+
             foreach (LinkFactory::getManyToManyLinks($this->links()) as $link) {
                 call_user_func([$entity, 'get' . ucwords($link->localEntityPropertyToSet)]);
             }
@@ -331,8 +355,12 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
             }
         }
 
-        foreach ($entityOfEntitiesOrIdIds as $entity) {
-            $this->dispatcher()->fire(new EntityDestroyed($entity));
+        foreach ($entityOfEntitiesOrIdIds as $entityOrId) {
+            if (!is_object($entityOrId)) {
+                $entityOrId = $this->identityMap->remove(get_class($this->entity()), $entityOrId);
+            }
+
+            $this->dispatcher()->fire(new EntityDestroyed($entityOrId));
         }
     }
 

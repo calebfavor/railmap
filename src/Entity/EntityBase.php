@@ -5,6 +5,7 @@ namespace Railroad\Railmap\Entity;
 use Illuminate\Database\Query\Builder;
 use Railroad\Railmap\DataMapper\DataMapperInterface;
 use Railroad\Railmap\Entity\Links\LinkFactory;
+use Railroad\Railmap\Helpers\IdentityMap;
 use Railroad\Railmap\Helpers\RailmapHelpers;
 
 abstract class EntityBase implements EntityInterface
