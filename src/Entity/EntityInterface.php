@@ -49,6 +49,12 @@ interface EntityInterface
     public function extract($dataKeyPrefix = '');
 
     /**
+     * @param string $dataKeyPrefix
+     * @return []
+     */
+    public function flatten($dataKeyPrefix = '');
+
+    /**
      * @param EntityInterface|EntityInterface[]|null $entityOrEntities
      */
     public function persist($entityOrEntities = null);

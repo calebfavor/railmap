@@ -96,6 +96,25 @@ abstract class EntityBase implements EntityInterface
     }
 
     /**
+     * @param string $dataKeyPrefix
+     * @return array
+     */
+    public function flatten($dataKeyPrefix = '')
+    {
+        $properties = get_object_vars($this);
+
+        foreach ($properties as $propertyName => $propertyValue) {
+            $getMethodName = 'get' . ucwords($propertyName);
+
+            if (method_exists($this, $getMethodName)) {
+                $properties[$dataKeyPrefix . $propertyName] = $this->$getMethodName();
+            }
+        }
+
+        return $properties;
+    }
+
+    /**
      * @param EntityInterface|EntityInterface[]|null $entityOrEntities
      */
     public function persist($entityOrEntities = null)
