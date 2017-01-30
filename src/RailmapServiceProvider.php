@@ -3,6 +3,7 @@
 namespace Railroad\Railmap;
 
 use Illuminate\Support\ServiceProvider;
+use Railroad\Railmap\IdentityMap\IdentityMap;
 
 class RailmapServiceProvider extends ServiceProvider
 {
@@ -23,6 +24,6 @@ class RailmapServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->app->singleton(IdentityMap::class);
     }
 }
