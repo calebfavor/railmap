@@ -15,12 +15,21 @@ class IdentityMap
     private $map = [];
 
     /**
+     * @var bool
+     */
+    private $enabled = true;
+
+    /**
      * @param $id
      * @param EntityInterface $entity
      * @return EntityInterface
      */
     public function getOrStore($id, EntityInterface $entity)
     {
+        if (!$this->enabled) {
+            return $entity;
+        }
+
         if (!empty($existingEntity = $this->get(get_class($entity), $id))) {
             return $existingEntity;
         }
@@ -41,6 +50,10 @@ class IdentityMap
             throw new EntityHasNoIdentifierException();
         }
 
+        if (!$this->enabled) {
+            return;
+        }
+
         $entityClass = get_class($entity);
 
         if (empty($this->get($entityClass, $id))) {
@@ -55,6 +68,10 @@ class IdentityMap
      */
     public function get($entityClass, $id)
     {
+        if (!$this->enabled) {
+            return null;
+        }
+
         if (isset($this->map[$entityClass][$id])) {
             return $this->map[$entityClass][$id];
         }
@@ -62,10 +79,30 @@ class IdentityMap
         return null;
     }
 
-    public function remove($entityClass, $id)
+    public function remove($entityClass, $id = null)
     {
         if (isset($this->map[$entityClass][$id])) {
             unset($this->map[$entityClass][$id]);
         }
+
+        if (empty($id)) {
+            unset($this->map[$entityClass]);
+        }
+    }
+
+    public static function disable()
+    {
+        app(self::class)->enabled = false;
+    }
+
+
+    public static function empty()
+    {
+        app(self::class)->map = [];
+    }
+
+    public static function enable()
+    {
+        app(self::class)->enabled = true;
     }
 }
