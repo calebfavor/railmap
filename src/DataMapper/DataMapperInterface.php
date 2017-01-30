@@ -16,7 +16,7 @@ interface DataMapperInterface
     public function get($idOrIds);
 
     /**
-     * Callback will be called with argument set to return value of $this->query()
+     * Callback will be called with argument set to return value of $this->gettingQuery()
      * Must return array (or arrayable) of rows or single row (key => value array)
      *
      * @param callable $queryCallback
@@ -24,6 +24,24 @@ interface DataMapperInterface
      * @return EntityInterface|EntityInterface[]
      */
     public function getWithQuery(callable $queryCallback, $forceArrayReturn = false);
+
+    /**
+     * Callback will be called with argument set to return value of $this->gettingQuery()
+     * $queryCallback MUST return a query object, NOT rows.
+     *
+     * @param callable|null $queryCallback
+     * @return int
+     */
+    public function count(callable $queryCallback = null);
+
+    /**
+     * Callback will be called with argument set to return value of $this->gettingQuery()
+     * $queryCallback MUST return a query object, NOT rows.
+     *
+     * @param callable|null $queryCallback
+     * @return boolean
+     */
+    public function exists(callable $queryCallback = null);
 
     /**
      * Must return array with keys as the entity attribute names and values as the extracted/column names.

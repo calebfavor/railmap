@@ -71,4 +71,19 @@ class RailmapHelpers
 
         return $entities;
     }
+
+    /**
+     * @param $string
+     * @return string
+     */
+    public static function sanitizeForSlug($string)
+    {
+        return strtolower(
+            preg_replace(
+                '/(\-)+/',
+                '-',
+                str_replace(' ', '-', preg_replace('/[^ \w]+/', '', str_replace('&', 'and', trim($string))))
+            )
+        );
+    }
 }

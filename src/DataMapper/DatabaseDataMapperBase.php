@@ -99,6 +99,36 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
     }
 
     /**
+     * $queryCallback MUST return a query object, NOT rows.
+     *
+     * @param callable|null $queryCallback
+     * @return int
+     */
+    public function count(callable $queryCallback = null)
+    {
+        if (is_callable($queryCallback)) {
+            return $queryCallback($this->gettingQuery())->count();
+        }
+
+        return $this->gettingQuery()->count();
+    }
+
+    /**
+     * $queryCallback MUST return a query object, NOT rows.
+     *
+     * @param callable|null $queryCallback
+     * @return int
+     */
+    public function exists(callable $queryCallback = null)
+    {
+        if (is_callable($queryCallback)) {
+            return $queryCallback($this->gettingQuery())->exists();
+        }
+
+        return $this->gettingQuery()->exists();
+    }
+
+    /**
      * @param callable $queryCallback
      * @param bool $forceArrayReturn
      * @return EntityInterface|EntityInterface[]
