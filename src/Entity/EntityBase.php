@@ -445,15 +445,22 @@ abstract class EntityBase implements EntityInterface
             }
         }
 
-        // Check sub naming
-
+        // this is the entity chain method calling
         foreach ($this->getOwningDataMapper()->links() as $linkName => $link) {
-            if (strpos(lcfirst($propertyName), $linkName) === 0) {
-                $localLinkedEntityGetter = 'get' . ucwords($link->localEntityPropertyToSet);
-                $linkedEntityGetter = 'get' . substr($propertyName, strlen($link->localEntityPropertyToSet));
+            if (strpos(lcfirst($propertyName), $linkName) === 0 && lcfirst($propertyName) != $linkName) {
+                $localLinkedEntityGetter = $accessType . ucwords($link->localEntityPropertyToSet);
+                $linkedEntityFunction = $accessType .
+                    substr($propertyName, strlen($link->localEntityPropertyToSet));
 
-                if (!empty($this->$localLinkedEntityGetter())) {
-                    return $this->$localLinkedEntityGetter()->$linkedEntityGetter();
+                if ($accessType == 'get') {
+                    if (!empty($this->$localLinkedEntityGetter())) {
+                        return $this->$localLinkedEntityGetter()->$linkedEntityFunction();
+                    }
+                } elseif ($accessType == 'set') {
+                    call_user_func_array(
+                        [$this->$localLinkedEntityGetter(), $linkedEntityFunction],
+                        $arguments
+                    );
                 }
             }
         }
