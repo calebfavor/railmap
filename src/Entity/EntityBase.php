@@ -445,6 +445,19 @@ abstract class EntityBase implements EntityInterface
             }
         }
 
+        // Check sub naming
+
+        foreach ($this->getOwningDataMapper()->links() as $linkName => $link) {
+            if (strpos(lcfirst($propertyName), $linkName) === 0) {
+                $localLinkedEntityGetter = 'get' . ucwords($link->localEntityPropertyToSet);
+                $linkedEntityGetter = 'get' . substr($propertyName, strlen($link->localEntityPropertyToSet));
+
+                if (!empty($this->$localLinkedEntityGetter())) {
+                    return $this->$localLinkedEntityGetter()->$linkedEntityGetter();
+                }
+            }
+        }
+
         return null;
     }
 }

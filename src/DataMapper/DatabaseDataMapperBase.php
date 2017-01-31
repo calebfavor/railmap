@@ -455,7 +455,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
         $linkedEntities = $foreignDataMapper->getWithQuery(
             function (Builder $query) use ($link, $entities, $foreignDataMapper) {
                 return $query->whereIn(
-                    $foreignDataMapper->map()[$link->foreignEntityLinkProperty],
+                    $foreignDataMapper->mapFrom()[$link->foreignEntityLinkProperty],
                     RailmapHelpers::entityArrayColumn(
                         $entities,
                         'get' . ucwords($link->localEntityLinkProperty)
@@ -474,9 +474,9 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
                 $extractedLinkedEntity = $linkedEntity->extract();
 
                 if (!empty(
-                    $extractedLinkedEntity[$foreignDataMapper->map()[$link->foreignEntityLinkProperty]]
+                    $extractedLinkedEntity[$foreignDataMapper->mapFrom()[$link->foreignEntityLinkProperty]]
                     ) &&
-                    $extractedLinkedEntity[$foreignDataMapper->map()[$link->foreignEntityLinkProperty]] ==
+                    $extractedLinkedEntity[$foreignDataMapper->mapFrom()[$link->foreignEntityLinkProperty]] ==
                     call_user_func(
                         [$entity, 'get' . ucwords($link->localEntityLinkProperty)]
                     ) &&
@@ -513,7 +513,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
         $linkedEntities = $foreignDataMapper->getWithQuery(
             function (Builder $query) use ($link, $entities, $foreignDataMapper) {
                 return $query->whereIn(
-                    $foreignDataMapper->map()[$link->foreignEntityLinkProperty],
+                    $foreignDataMapper->mapFrom()[$link->foreignEntityLinkProperty],
                     RailmapHelpers::entityArrayColumn(
                         $entities,
                         'get' . ucwords($link->localEntityLinkProperty)
@@ -534,9 +534,9 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
                 $extractedLinkedEntity = $linkedEntity->extract();
 
                 if (!empty(
-                    $extractedLinkedEntity[$foreignDataMapper->map()[$link->foreignEntityLinkProperty]]
+                    $extractedLinkedEntity[$foreignDataMapper->mapFrom()[$link->foreignEntityLinkProperty]]
                     ) &&
-                    $extractedLinkedEntity[$foreignDataMapper->map()[$link->foreignEntityLinkProperty]] ==
+                    $extractedLinkedEntity[$foreignDataMapper->mapFrom()[$link->foreignEntityLinkProperty]] ==
                     call_user_func(
                         [$entity, 'get' . ucwords($link->localEntityLinkProperty)]
                     ) &&
@@ -583,7 +583,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
         $linkEntities = $linkDataMapper->getWithQuery(
             function (Builder $query) use ($link, $linkDataMapper, $entityOrEntities) {
                 return $query->whereIn(
-                    $linkDataMapper->map()[$link->pivotLocalEntityLinkProperty],
+                    $linkDataMapper->mapFrom()[$link->pivotLocalEntityLinkProperty],
                     RailmapHelpers::entityArrayColumn(
                         $entityOrEntities,
                         'get' . ucwords($link->localEntityLinkProperty)
@@ -605,7 +605,7 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
                 $linkEntities
             ) {
                 return $query->whereIn(
-                    $foreignDataMapper->map()[$link->foreignEntityLinkProperty],
+                    $foreignDataMapper->mapFrom()[$link->foreignEntityLinkProperty],
                     RailmapHelpers::entityArrayColumn(
                         $linkEntities,
                         'get' . ucwords($link->pivotForeignEntityLinkProperty)

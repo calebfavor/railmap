@@ -6,7 +6,6 @@ class OneToOne extends LinkBase
 {
     public $localEntityLinkProperty; // Ex. userId
     public $foreignEntityLinkProperty; // Ex. id
-
     public $localEntityPropertyToSet; // Ex. user
 
     /**
