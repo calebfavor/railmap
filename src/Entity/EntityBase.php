@@ -3,7 +3,7 @@
 namespace Railroad\Railmap\Entity;
 
 use Illuminate\Database\Query\Builder;
-use Railroad\Railmap\DataMapper\DataMapperInterface;
+use Railroad\Railmap\DataMapper\DataMapperBase;
 use Railroad\Railmap\Entity\Links\LinkFactory;
 use Railroad\Railmap\Helpers\RailmapHelpers;
 
@@ -25,7 +25,7 @@ abstract class EntityBase implements EntityInterface
     protected $id;
 
     /**
-     * @var $owningDataMapper DataMapperInterface
+     * @var $owningDataMapper DataMapperBase
      */
     protected $owningDataMapper;
 
@@ -46,7 +46,7 @@ abstract class EntityBase implements EntityInterface
     }
 
     /**
-     * @return DataMapperInterface
+     * @return DataMapperBase
      */
     public function getOwningDataMapper()
     {
@@ -54,9 +54,9 @@ abstract class EntityBase implements EntityInterface
     }
 
     /**
-     * @param DataMapperInterface $owningDataMapper
+     * @param DataMapperBase $owningDataMapper
      */
-    public function setOwningDataMapper(DataMapperInterface $owningDataMapper)
+    public function setOwningDataMapper(DataMapperBase $owningDataMapper)
     {
         $this->owningDataMapper = $owningDataMapper;
     }

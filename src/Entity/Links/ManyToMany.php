@@ -28,6 +28,7 @@ class ManyToMany extends LinkBase
      * @param $localEntityPropertyToSet
      * @param string $sortByForeignColumn
      * @param string $sortByForeignDirection
+     * @param callable|null $queryCustomizeCallback
      */
     public function __construct(
         $linkedEntityClass,
@@ -38,7 +39,8 @@ class ManyToMany extends LinkBase
         $foreignEntityLinkProperty,
         $localEntityPropertyToSet,
         $sortByForeignColumn = 'id',
-        $sortByForeignDirection = 'asc'
+        $sortByForeignDirection = 'asc',
+        $queryCustomizeCallback = null
     ) {
         $this->linkedEntityClass = $linkedEntityClass;
         $this->pivotLinkEntityClass = $pivotLinkEntityClass;
@@ -49,5 +51,6 @@ class ManyToMany extends LinkBase
         $this->localEntityPropertyToSet = $localEntityPropertyToSet;
         $this->sortByForeignColumn = $sortByForeignColumn;
         $this->sortByForeignDirection = $sortByForeignDirection;
+        $this->queryCustomizeCallback = $queryCustomizeCallback;
     }
 }

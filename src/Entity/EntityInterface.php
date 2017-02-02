@@ -2,7 +2,7 @@
 
 namespace Railroad\Railmap\Entity;
 
-use Railroad\Railmap\DataMapper\DataMapperInterface;
+use Railroad\Railmap\DataMapper\DataMapperBase;
 
 interface EntityInterface
 {
@@ -17,14 +17,14 @@ interface EntityInterface
     public function setId($id);
 
     /**
-     * @return DataMapperInterface
+     * @return DataMapperBase
      */
     public function getOwningDataMapper();
 
     /**
-     * @param DataMapperInterface $owningDataMapper
+     * @param DataMapperBase $owningDataMapper
      */
-    public function setOwningDataMapper(DataMapperInterface $owningDataMapper);
+    public function setOwningDataMapper(DataMapperBase $owningDataMapper);
 
     /**
      * @return array

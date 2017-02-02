@@ -18,39 +18,19 @@ use Railroad\Railmap\Events\EntityDestroyed;
 use Railroad\Railmap\Events\EntitySaved;
 use Railroad\Railmap\Events\EntityUpdated;
 use Railroad\Railmap\Helpers\RailmapHelpers;
-use Railroad\Railmap\IdentityMap\IdentityMap;
 
-abstract class DatabaseDataMapperBase implements DataMapperInterface
+abstract class DatabaseDataMapperBase extends DataMapperBase
 {
     /**
      * @var $databaseManager DatabaseManager
      */
     protected $databaseManager;
 
-    /**
-     * @var $identityMap IdentityMap
-     */
-    protected $identityMap;
-
-    /**
-     * @var string[]
-     */
-    protected $with = [];
-
-    /**
-     * @var string
-     */
-    protected $table = '';
-
     public function __construct()
     {
-        $this->databaseManager = app(DatabaseManager::class);
-        $this->identityMap = app(IdentityMap::class);
-    }
+        parent::__construct();
 
-    public function mapFrom()
-    {
-        return $this->mapTo();
+        $this->databaseManager = app(DatabaseManager::class);
     }
 
     /**
@@ -455,6 +435,8 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
         $linkedEntities = $foreignDataMapper->getWithQuery(
             function (Builder $query) use ($link, $entities, $foreignDataMapper) {
                 return $query->whereIn(
+                    $foreignDataMapper->table .
+                    '.' .
                     $foreignDataMapper->mapFrom()[$link->foreignEntityLinkProperty],
                     RailmapHelpers::entityArrayColumn(
                         $entities,
@@ -512,7 +494,13 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
 
         $linkedEntities = $foreignDataMapper->getWithQuery(
             function (Builder $query) use ($link, $entities, $foreignDataMapper) {
+                if (is_callable($link->queryCustomizeCallback)) {
+                    $query = call_user_func($link->queryCustomizeCallback, $query);
+                }
+
                 return $query->whereIn(
+                    $foreignDataMapper->table .
+                    '.' .
                     $foreignDataMapper->mapFrom()[$link->foreignEntityLinkProperty],
                     RailmapHelpers::entityArrayColumn(
                         $entities,
@@ -582,7 +570,13 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
         // todo: extract to data mapper
         $linkEntities = $linkDataMapper->getWithQuery(
             function (Builder $query) use ($link, $linkDataMapper, $entityOrEntities) {
+                if (is_callable($link->queryCustomizeCallback)) {
+                    $query = call_user_func($link->queryCustomizeCallback, $query);
+                }
+
                 return $query->whereIn(
+                    $linkDataMapper->table .
+                    '.' .
                     $linkDataMapper->mapFrom()[$link->pivotLocalEntityLinkProperty],
                     RailmapHelpers::entityArrayColumn(
                         $entityOrEntities,
@@ -605,6 +599,8 @@ abstract class DatabaseDataMapperBase implements DataMapperInterface
                 $linkEntities
             ) {
                 return $query->whereIn(
+                    $foreignDataMapper->table .
+                    '.' .
                     $foreignDataMapper->mapFrom()[$link->foreignEntityLinkProperty],
                     RailmapHelpers::entityArrayColumn(
                         $linkEntities,
