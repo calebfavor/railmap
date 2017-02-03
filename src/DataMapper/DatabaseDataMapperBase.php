@@ -167,11 +167,20 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
     }
 
     /**
+     * @param Builder $query
+     * @return Builder
+     */
+    public function filter($query)
+    {
+        return $query;
+    }
+
+    /**
      * @return Builder
      */
     public function gettingQuery()
     {
-        return $this->baseQuery();
+        return $this->filter($this->baseQuery());
     }
 
     /**

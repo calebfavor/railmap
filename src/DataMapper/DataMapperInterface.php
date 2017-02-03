@@ -83,6 +83,17 @@ interface DataMapperInterface
     public function baseQuery();
 
     /**
+     * This must return this data mappers query object, with filters applied. Used for things like
+     * user permissions.
+     *
+     * Ex. \Illuminate\Database\Query\Builder
+     *
+     * @param $query
+     * @return mixed
+     */
+    public function filter($query);
+
+    /**
      * This must return this data mappers query object for pulling data, joins go here.
      * Ex. \Illuminate\Database\Query\Builder
      *
