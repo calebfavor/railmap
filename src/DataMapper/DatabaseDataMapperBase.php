@@ -341,21 +341,24 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
 
         $entityOfEntitiesOrIdIds = array_filter($entityOfEntitiesOrIdIds);
 
-        $idsToDelete = [];
+        $entitiesToDelete = [];
 
-        foreach ($entityOfEntitiesOrIdIds as $entityOrId) {
-            if (is_object($entityOrId)) {
-                $idsToDelete[] = $entityOrId->getId();
+        if (!is_object(reset($entityOfEntitiesOrIdIds))) {
+            $entitiesToDelete = $this->get($entityOfEntitiesOrIdIds);
+        }
+
+        /** @var $entitiesToDelete EntityInterface[] */
+        $entitiesToDelete = array_filter($entitiesToDelete);
+
+        foreach ($entitiesToDelete as $entityToDelete) {
+            $this->identityMap->remove(get_class($this->entity()), $entityToDelete->getId());
+
+            if (method_exists($entityToDelete, 'setDeletedAt')) {
+                $entityToDelete->setDeletedAt(Carbon::now()->toDateTimeString());
             } else {
-                $idsToDelete[] = $entityOrId;
+                $this->settingQuery()->where($this->table . '.id', $entityToDelete->getId())->delete();
             }
         }
-
-        foreach ($idsToDelete as $idToDelete) {
-            $this->identityMap->remove(get_class($this->entity()), $idToDelete);
-        }
-
-        $this->settingQuery()->whereIn($this->table . '.id', $idsToDelete)->delete();
 
         // Delete all pivot table entries
         foreach ($entityOfEntitiesOrIdIds as $entity) {
