@@ -341,10 +341,10 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
 
         $entityOfEntitiesOrIdIds = array_filter($entityOfEntitiesOrIdIds);
 
-        $entitiesToDelete = [];
-
         if (!is_object(reset($entityOfEntitiesOrIdIds))) {
             $entitiesToDelete = $this->get($entityOfEntitiesOrIdIds);
+        } else {
+            $entitiesToDelete = $entityOfEntitiesOrIdIds;
         }
 
         /** @var $entitiesToDelete EntityInterface[] */
@@ -353,8 +353,12 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
         foreach ($entitiesToDelete as $entityToDelete) {
             $this->identityMap->remove(get_class($this->entity()), $entityToDelete->getId());
 
-            if (method_exists($entityToDelete, 'setDeletedAt')) {
+            // soft deletes
+            if (isset(array_values($this->mapTo())['deleted_at']) &&
+                method_exists($entityToDelete, 'setDeletedAt')
+            ) {
                 $entityToDelete->setDeletedAt(Carbon::now()->toDateTimeString());
+                $entityToDelete->persist();
             } else {
                 $this->settingQuery()->where($this->table . '.id', $entityToDelete->getId())->delete();
             }
