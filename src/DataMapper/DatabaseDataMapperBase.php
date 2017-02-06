@@ -154,13 +154,13 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
         $query = $this->databaseManager->connection()->query()->from($this->table);
 
         // soft deletes
-        if (isset(array_values($this->mapTo())['deleted_at'])) {
-            $query->whereNull('deleted_at');
+        if (isset(array_flip($this->mapTo())['deleted_at'])) {
+            $query->whereNull($this->table . '.deleted_at');
         }
 
         // versioned
-        if (isset(array_values($this->mapTo())['version_master_id'])) {
-            $query->whereNull('version_master_id');
+        if (isset(array_flip($this->mapTo())['version_master_id'])) {
+            $query->whereNull($this->table . '.version_master_id');
         }
 
         return $query;
@@ -310,6 +310,10 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
             } else {
                 $oldEntity = $this->get($entity->getId());
 
+                if (method_exists($entity, 'setVersionMasterId')) {
+                    $this->saveVersion($entity);
+                }
+
                 $this->settingQuery()->where([$this->table . '.id' => $entity->getId()])->take(1)->update(
                     $this->beforePersist($this->extract($entity))
                 );
@@ -323,6 +327,17 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
                 $this->dispatcher()->fire(new EntityCreated($entity, $oldEntity));
             }
         }
+    }
+
+    public function saveVersion(EntityInterface $entity)
+    {
+        $verion = clone $entity;
+
+        $verion->setVersionMasterId($entity->getId());
+        $verion->setVersionSavedAt(Carbon::now()->toDateTimeString());
+        $verion->setId(null);
+
+        $this->settingQuery()->insert($this->beforePersist($this->extract($verion)));
     }
 
     /** |EntityInterface[]|integer|integer[]
@@ -354,7 +369,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
             $this->identityMap->remove(get_class($this->entity()), $entityToDelete->getId());
 
             // soft deletes
-            if (isset(array_values($this->mapTo())['deleted_at']) &&
+            if (isset(array_flip($this->mapTo())['deleted_at']) &&
                 method_exists($entityToDelete, 'setDeletedAt')
             ) {
                 $entityToDelete->setDeletedAt(Carbon::now()->toDateTimeString());
