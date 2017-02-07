@@ -261,7 +261,7 @@ abstract class EntityBase implements EntityInterface
                     $foreignEntities = $foreignDataMapper->getWithQuery(
                         function (Builder $query) use ($link, $localEntityLinkValue, $foreignDataMapper) {
                             return $query->where(
-                                $foreignDataMapper->map()[$link->foreignEntityLinkProperty],
+                                $foreignDataMapper->mapTo()[$link->foreignEntityLinkProperty],
                                 $localEntityLinkValue
                             )->orderBy($link->sortByForeignColumn, $link->sortByForeignDirection)->get();
                         },
