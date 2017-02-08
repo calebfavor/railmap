@@ -463,16 +463,24 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
 
         $foreignDataMapper = $class->getOwningDataMapper();
 
+        $localLinkValues = array_filter(
+            RailmapHelpers::entityArrayColumn(
+                $entities,
+                'get' . ucwords($link->localEntityLinkProperty)
+            )
+        );
+
+        if (empty($localLinkValues)) {
+            return $entityOrEntities;
+        }
+
         $linkedEntities = $foreignDataMapper->getWithQuery(
-            function (Builder $query) use ($link, $entities, $foreignDataMapper) {
+            function (Builder $query) use ($link, $entities, $foreignDataMapper, $localLinkValues) {
                 return $query->whereIn(
                     $foreignDataMapper->table .
                     '.' .
                     $foreignDataMapper->mapFrom()[$link->foreignEntityLinkProperty],
-                    RailmapHelpers::entityArrayColumn(
-                        $entities,
-                        'get' . ucwords($link->localEntityLinkProperty)
-                    )
+                    $localLinkValues
                 )->get();
             },
             true
