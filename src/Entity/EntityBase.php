@@ -331,7 +331,7 @@ abstract class EntityBase implements EntityInterface
                     $linkEntities = $linkDataMapper->getWithQuery(
                         function (Builder $query) use ($link, $localEntityLinkValue, $linkDataMapper) {
                             return $query->where(
-                                $linkDataMapper->map()[$link->pivotLocalEntityLinkProperty],
+                                $linkDataMapper->mapTo()[$link->pivotLocalEntityLinkProperty],
                                 $localEntityLinkValue
                             )->get();
                         },
@@ -350,7 +350,7 @@ abstract class EntityBase implements EntityInterface
                             $linkEntities
                         ) {
                             return $query->whereIn(
-                                $foreignDataMapper->map()[$link->foreignEntityLinkProperty],
+                                $foreignDataMapper->mapTo()[$link->foreignEntityLinkProperty],
                                 RailmapHelpers::entityArrayColumn(
                                     $linkEntities,
                                     'get' . ucwords($link->pivotForeignEntityLinkProperty)
