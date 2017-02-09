@@ -7,6 +7,7 @@ use Carbon\Carbon;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Events\Dispatcher;
+use Illuminate\Support\Facades\DB;
 use Railroad\Railmap\Entity\EntityInterface;
 use Railroad\Railmap\Entity\Links\LinkBase;
 use Railroad\Railmap\Entity\Links\LinkFactory;
@@ -40,7 +41,13 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
     public function get($idOrIds)
     {
         if (is_array($idOrIds)) {
-            $entities = [];
+            $entities = $this->identityMap->getMany(get_class($this->entity()), $idOrIds);
+
+            $idOrIds = array_diff(RailmapHelpers::entityArrayColumn($entities, 'getId'), $idOrIds);
+
+            if (empty($idOrIds)) {
+                return $entities;
+            }
 
             $rows = $this->gettingQuery()->whereIn($this->table . '.id', $idOrIds)->get()->toArray();
 
@@ -62,6 +69,12 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
             }
 
             return $this->processWithLinks($orderedEntities);
+        }
+
+        $entity = $this->identityMap->get(get_class($this->entity()), $idOrIds);
+
+        if (!empty($entity)) {
+            return $entity;
         }
 
         $row = $this->gettingQuery()->where($this->table . '.id', '=', $idOrIds)->first();
@@ -311,7 +324,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
                 $oldEntity = $this->get($entity->getId());
 
                 if (method_exists($entity, 'setVersionMasterId')) {
-                    $this->saveVersion($entity);
+                    $this->saveVersion($oldEntity, $entity);
                 }
 
                 $this->settingQuery()->where([$this->table . '.id' => $entity->getId()])->take(1)->update(
@@ -329,15 +342,23 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
         }
     }
 
-    public function saveVersion(EntityInterface $entity)
+    public function saveVersion(EntityInterface $oldEntity, EntityInterface $newEntity)
     {
-        $verion = clone $entity;
+        $version = clone $newEntity;
 
-        $verion->setVersionMasterId($entity->getId());
-        $verion->setVersionSavedAt(Carbon::now()->toDateTimeString());
-        $verion->setId(null);
+        foreach ($oldEntity->versionedAttributes as $versionedAttribute) {
+            if (call_user_func([$oldEntity, 'get' . ucwords($versionedAttribute)]) !==
+                call_user_func([$newEntity, 'get' . ucwords($versionedAttribute)])
+            ) {
+                $version->setVersionMasterId($newEntity->getId());
+                $version->setVersionSavedAt(Carbon::now()->toDateTimeString());
+                $version->setId(null);
 
-        $this->settingQuery()->insert($this->beforePersist($this->extract($verion)));
+                $this->settingQuery()->insert($this->beforePersist($this->extract($version)));
+
+                return;
+            }
+        }
     }
 
     /** |EntityInterface[]|integer|integer[]
@@ -530,6 +551,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
         $class = (new $class());
 
         $foreignDataMapper = $class->getOwningDataMapper();
+        $queryL = DB::connection()->enableQueryLog();
 
         $linkedEntities = $foreignDataMapper->getWithQuery(
             function (Builder $query) use ($link, $entities, $foreignDataMapper) {
@@ -549,6 +571,8 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
             },
             true
         );
+
+        $queryL = DB::connection()->getQueryLog();
 
         if (empty($linkedEntities)) {
             return $entityOrEntities;

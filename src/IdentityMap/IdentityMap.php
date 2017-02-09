@@ -79,6 +79,28 @@ class IdentityMap
         return null;
     }
 
+    /**
+     * @param $entityClass
+     * @param array $ids
+     * @return EntityInterface[]
+     */
+    public function getMany($entityClass, array $ids)
+    {
+        if (!$this->enabled) {
+            return [];
+        }
+
+        $entities = [];
+
+        foreach ($ids as $id) {
+            if (isset($this->map[$entityClass][$id])) {
+                $entities[] = $this->map[$entityClass][$id];
+            }
+        }
+
+        return $entities;
+    }
+
     public function remove($entityClass, $id = null)
     {
         if (isset($this->map[$entityClass][$id])) {
@@ -94,7 +116,6 @@ class IdentityMap
     {
         app(self::class)->enabled = false;
     }
-
 
     public static function empty()
     {
