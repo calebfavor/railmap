@@ -16,7 +16,7 @@ class RailmapHelpers
         $values = [];
 
         foreach ($entities as $entity) {
-            if (method_exists($entity, $getMethod)) {
+            if (method_exists($entity, $getMethod) || method_exists($entity, '__call')) {
                 $values[] = $entity->$getMethod();
             }
         }

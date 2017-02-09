@@ -260,6 +260,10 @@ abstract class EntityBase implements EntityInterface
                     // todo: extract to data mapper
                     $foreignEntities = $foreignDataMapper->getWithQuery(
                         function (Builder $query) use ($link, $localEntityLinkValue, $foreignDataMapper) {
+                            if (is_callable($link->queryCustomizeCallback)) {
+                                $query = call_user_func($link->queryCustomizeCallback, $query);
+                            }
+
                             return $query->where(
                                 $foreignDataMapper->mapTo()[$link->foreignEntityLinkProperty],
                                 $localEntityLinkValue
@@ -330,6 +334,10 @@ abstract class EntityBase implements EntityInterface
                     // todo: extract to data mapper
                     $linkEntities = $linkDataMapper->getWithQuery(
                         function (Builder $query) use ($link, $localEntityLinkValue, $linkDataMapper) {
+                            if (is_callable($link->queryCustomizeCallback)) {
+                                $query = call_user_func($link->queryCustomizeCallback, $query);
+                            }
+
                             return $query->where(
                                 $linkDataMapper->mapTo()[$link->pivotLocalEntityLinkProperty],
                                 $localEntityLinkValue
