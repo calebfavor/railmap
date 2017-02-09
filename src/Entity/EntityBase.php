@@ -267,7 +267,7 @@ abstract class EntityBase implements EntityInterface
                             return $query->where(
                                 $foreignDataMapper->mapTo()[$link->foreignEntityLinkProperty],
                                 $localEntityLinkValue
-                            )->orderBy($link->sortByForeignColumn, $link->sortByForeignDirection)->get();
+                            )->orderBy($link->sortByForeignColumn, $link->sortByForeignDirection);
                         },
                         true
                     );
@@ -341,7 +341,7 @@ abstract class EntityBase implements EntityInterface
                             return $query->where(
                                 $linkDataMapper->mapTo()[$link->pivotLocalEntityLinkProperty],
                                 $localEntityLinkValue
-                            )->get();
+                            );
                         },
                         true
                     );
@@ -363,7 +363,7 @@ abstract class EntityBase implements EntityInterface
                                     $linkEntities,
                                     'get' . ucwords($link->pivotForeignEntityLinkProperty)
                                 )
-                            )->orderBy($link->sortByForeignColumn, $link->sortByForeignDirection)->get();
+                            )->orderBy($link->sortByForeignColumn, $link->sortByForeignDirection);
                         },
                         true
                     );

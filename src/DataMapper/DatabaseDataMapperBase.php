@@ -4,9 +4,9 @@ namespace Railroad\Railmap\DataMapper;
 
 use ArrayAccess;
 use Carbon\Carbon;
+use Illuminate\Cache\Repository as CacheRepository;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Events\Dispatcher;
-use Illuminate\Support\Facades\DB;
 use Railroad\Railmap\Cache\Builder;
 use Railroad\Railmap\Entity\EntityInterface;
 use Railroad\Railmap\Entity\Links\LinkBase;
@@ -27,11 +27,17 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
      */
     protected $databaseManager;
 
+    /**
+     * @var $cacheManager CacheRepository
+     */
+    protected $cacheRepository;
+
     public function __construct()
     {
         parent::__construct();
 
         $this->databaseManager = app(DatabaseManager::class);
+        $this->cacheRepository = app(CacheRepository ::class);
     }
 
     /**
@@ -49,7 +55,15 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
                 return $entities;
             }
 
-            $rows = $this->gettingQuery()->whereIn($this->table . '.id', $idOrIds)->get()->toArray();
+            $query = $this->gettingQuery()->whereIn($this->table . '.id', $idOrIds);
+            $cacheKey = $this->generateQueryCacheKey($query);
+
+            if ($this->cacheRepository->has($cacheKey)) {
+                $rows = $this->cacheRepository->get($cacheKey);
+            } else {
+                $rows = $query->get()->toArray();
+                $this->cacheRepository->put($cacheKey, $rows, $this->cacheTime);
+            }
 
             foreach ($rows as $row) {
                 $entity = $this->entity();
@@ -100,10 +114,20 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
     public function count(callable $queryCallback = null)
     {
         if (is_callable($queryCallback)) {
-            return $queryCallback($this->gettingQuery())->count();
+            $query = $queryCallback($this->gettingQuery());
+        } else {
+            $query = $this->gettingQuery();
         }
 
-        return $this->gettingQuery()->count();
+        $cacheKey = $this->generateQueryCacheKey($query);
+
+        if ($this->cacheRepository->has($cacheKey)) {
+            return $this->cacheRepository->get($cacheKey);
+        } else {
+            $count = $query->count();
+            $this->cacheRepository->put($cacheKey, $count, $this->cacheTime);
+            return $count;
+        }
     }
 
     /**
@@ -115,10 +139,20 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
     public function exists(callable $queryCallback = null)
     {
         if (is_callable($queryCallback)) {
-            return $queryCallback($this->gettingQuery())->exists();
+            $query = $queryCallback($this->gettingQuery());
+        } else {
+            $query = $this->gettingQuery();
         }
 
-        return $this->gettingQuery()->exists();
+        $cacheKey = $this->generateQueryCacheKey($query);
+
+        if ($this->cacheRepository->has($cacheKey)) {
+            return $this->cacheRepository->get($cacheKey);
+        } else {
+            $exists = $query->exists();
+            $this->cacheRepository->put($cacheKey, $exists, $this->cacheTime);
+            return $exists;
+        }
     }
 
     /**
@@ -128,7 +162,15 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
      */
     public function getWithQuery(callable $queryCallback, $forceArrayReturn = false)
     {
-        $rows = $queryCallback($this->gettingQuery());
+        $query = $queryCallback($this->gettingQuery());
+        $cacheKey = $this->generateQueryCacheKey($query);
+
+        if ($this->cacheRepository->has($cacheKey)) {
+            $rows = $this->cacheRepository->get($cacheKey);
+        } else {
+            $rows = $query->get();
+            $this->cacheRepository->put($cacheKey, $rows, $this->cacheTime);
+        }
 
         if (is_array($rows) || $rows instanceof ArrayAccess) {
             $entities = [];
@@ -169,7 +211,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
             $this->databaseManager->connection()->getQueryGrammar(),
             $this->databaseManager->connection()->getPostProcessor()
         );
-        
+
         $query->from($this->table);
 
         // soft deletes
@@ -512,7 +554,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
                     '.' .
                     $foreignDataMapper->mapFrom()[$link->foreignEntityLinkProperty],
                     $localLinkValues
-                )->get();
+                );
             },
             true
         );
@@ -561,7 +603,6 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
         $class = (new $class());
 
         $foreignDataMapper = $class->getOwningDataMapper();
-        $queryL = DB::connection()->enableQueryLog();
 
         $linkedEntities = $foreignDataMapper->getWithQuery(
             function (Builder $query) use ($link, $entities, $foreignDataMapper) {
@@ -577,12 +618,10 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
                         $entities,
                         'get' . ucwords($link->localEntityLinkProperty)
                     )
-                )->orderBy($link->sortByForeignColumn, $link->sortByForeignDirection)->get();
+                )->orderBy($link->sortByForeignColumn, $link->sortByForeignDirection);
             },
             true
         );
-
-        $queryL = DB::connection()->getQueryLog();
 
         if (empty($linkedEntities)) {
             return $entityOrEntities;
@@ -655,7 +694,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
                         $entityOrEntities,
                         'get' . ucwords($link->localEntityLinkProperty)
                     )
-                )->get();
+                );
             },
             true
         );
@@ -679,7 +718,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
                         $linkEntities,
                         'get' . ucwords($link->pivotForeignEntityLinkProperty)
                     )
-                )->orderBy($link->sortByForeignColumn, $link->sortByForeignDirection)->get();
+                )->orderBy($link->sortByForeignColumn, $link->sortByForeignDirection);
             },
             true
         );
@@ -731,5 +770,13 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
         }
 
         return $entityOrEntities;
+    }
+
+    public function generateQueryCacheKey($query)
+    {
+        return str_replace('\\', '-', get_class($this)) . '_' . hash(
+                'sha256',
+                $query->toSql() . serialize($query->getBindings())
+            );
     }
 }

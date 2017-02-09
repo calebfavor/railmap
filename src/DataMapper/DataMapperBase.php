@@ -22,9 +22,9 @@ abstract class DataMapperBase implements DataMapperInterface
     public $table = '';
 
     /**
-     * @var int
+     * @var int|null
      */
-    protected $cacheTime = -1;
+    protected $cacheTime;
 
     public function __construct()
     {
