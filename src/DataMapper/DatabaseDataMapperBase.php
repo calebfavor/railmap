@@ -5,9 +5,9 @@ namespace Railroad\Railmap\DataMapper;
 use ArrayAccess;
 use Carbon\Carbon;
 use Illuminate\Database\DatabaseManager;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Support\Facades\DB;
+use Railroad\Railmap\Cache\Builder;
 use Railroad\Railmap\Entity\EntityInterface;
 use Railroad\Railmap\Entity\Links\LinkBase;
 use Railroad\Railmap\Entity\Links\LinkFactory;
@@ -164,7 +164,13 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
      */
     public function baseQuery()
     {
-        $query = $this->databaseManager->connection()->query()->from($this->table);
+        $query = new Builder(
+            $this->databaseManager->connection(),
+            $this->databaseManager->connection()->getQueryGrammar(),
+            $this->databaseManager->connection()->getPostProcessor()
+        );
+        
+        $query->from($this->table);
 
         // soft deletes
         if (isset(array_flip($this->mapTo())['deleted_at'])) {
@@ -174,6 +180,10 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
         // versioned
         if (isset(array_flip($this->mapTo())['version_master_id'])) {
             $query->whereNull($this->table . '.version_master_id');
+        }
+
+        if ($this->cacheTime > -1) {
+            $query->remember($this->cacheTime);
         }
 
         return $query;

@@ -21,6 +21,11 @@ abstract class DataMapperBase implements DataMapperInterface
      */
     public $table = '';
 
+    /**
+     * @var int
+     */
+    protected $cacheTime = -1;
+
     public function __construct()
     {
         $this->identityMap = app(IdentityMap::class);
