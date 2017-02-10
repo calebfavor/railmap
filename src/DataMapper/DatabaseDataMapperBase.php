@@ -6,8 +6,8 @@ use ArrayAccess;
 use Carbon\Carbon;
 use Illuminate\Cache\Repository as CacheRepository;
 use Illuminate\Database\DatabaseManager;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Events\Dispatcher;
-use Railroad\Railmap\Cache\Builder;
 use Railroad\Railmap\Entity\EntityInterface;
 use Railroad\Railmap\Entity\Links\LinkBase;
 use Railroad\Railmap\Entity\Links\LinkFactory;
@@ -31,6 +31,8 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
      * @var $cacheManager CacheRepository
      */
     protected $cacheRepository;
+
+    public $cacheTime;
 
     public function __construct()
     {
@@ -58,11 +60,11 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
             $query = $this->gettingQuery()->whereIn($this->table . '.id', $idOrIds);
             $cacheKey = $this->generateQueryCacheKey($query);
 
-            if ($this->cacheRepository->has($cacheKey)) {
-                $rows = $this->cacheRepository->get($cacheKey);
+            if (!is_null($this->cacheTime) && $this->cacheRepository()->has($cacheKey)) {
+                $rows = $this->cacheRepository()->get($cacheKey);
             } else {
                 $rows = $query->get()->toArray();
-                $this->cacheRepository->put($cacheKey, $rows, $this->cacheTime);
+                $this->cacheRepository()->put($cacheKey, $rows, $this->cacheTime);
             }
 
             foreach ($rows as $row) {
@@ -121,11 +123,11 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
 
         $cacheKey = $this->generateQueryCacheKey($query);
 
-        if ($this->cacheRepository->has($cacheKey)) {
-            return $this->cacheRepository->get($cacheKey);
+        if (!is_null($this->cacheTime) && $this->cacheRepository()->has($cacheKey)) {
+            return $this->cacheRepository()->get($cacheKey);
         } else {
             $count = $query->count();
-            $this->cacheRepository->put($cacheKey, $count, $this->cacheTime);
+            $this->cacheRepository()->put($cacheKey, $count, $this->cacheTime);
             return $count;
         }
     }
@@ -146,11 +148,11 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
 
         $cacheKey = $this->generateQueryCacheKey($query);
 
-        if ($this->cacheRepository->has($cacheKey)) {
-            return $this->cacheRepository->get($cacheKey);
+        if (!is_null($this->cacheTime) && $this->cacheRepository()->has($cacheKey)) {
+            return $this->cacheRepository()->get($cacheKey);
         } else {
             $exists = $query->exists();
-            $this->cacheRepository->put($cacheKey, $exists, $this->cacheTime);
+            $this->cacheRepository()->put($cacheKey, $exists, $this->cacheTime);
             return $exists;
         }
     }
@@ -165,11 +167,11 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
         $query = $queryCallback($this->gettingQuery());
         $cacheKey = $this->generateQueryCacheKey($query);
 
-        if ($this->cacheRepository->has($cacheKey)) {
-            $rows = $this->cacheRepository->get($cacheKey);
+        if (!is_null($this->cacheTime) && $this->cacheRepository()->has($cacheKey)) {
+            $rows = $this->cacheRepository()->get($cacheKey);
         } else {
             $rows = $query->get();
-            $this->cacheRepository->put($cacheKey, $rows, $this->cacheTime);
+            $this->cacheRepository()->put($cacheKey, $rows, $this->cacheTime);
         }
 
         if (is_array($rows) || $rows instanceof ArrayAccess) {
@@ -206,11 +208,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
      */
     public function baseQuery()
     {
-        $query = new Builder(
-            $this->databaseManager->connection(),
-            $this->databaseManager->connection()->getQueryGrammar(),
-            $this->databaseManager->connection()->getPostProcessor()
-        );
+        $query = $this->databaseManager->connection()->query();
 
         $query->from($this->table);
 
@@ -222,10 +220,6 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
         // versioned
         if (isset(array_flip($this->mapTo())['version_master_id'])) {
             $query->whereNull($this->table . '.version_master_id');
-        }
-
-        if ($this->cacheTime > -1) {
-            $query->remember($this->cacheTime);
         }
 
         return $query;
@@ -774,9 +768,20 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
 
     public function generateQueryCacheKey($query)
     {
-        return str_replace('\\', '-', get_class($this)) . '_' . hash(
-                'sha256',
-                $query->toSql() . serialize($query->getBindings())
-            );
+        return hash(
+            'sha256',
+            $query->toSql() . serialize($query->getBindings())
+        );
+    }
+
+    public function flushCache()
+    {
+        $this->cacheRepository()->flush();
+    }
+
+    public function cacheRepository()
+    {
+        $tag = get_class($this);
+        return $this->cacheRepository->tags([$tag]);
     }
 }
