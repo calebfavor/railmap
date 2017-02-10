@@ -7,6 +7,7 @@ use Illuminate\Cache\Repository as CacheRepository;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Events\Dispatcher;
+use Illuminate\Support\Collection;
 use Railroad\Railmap\Entity\EntityInterface;
 use Railroad\Railmap\Entity\Links\LinkBase;
 use Railroad\Railmap\Entity\Links\LinkFactory;
@@ -22,6 +23,8 @@ use Railroad\Railmap\Helpers\RailmapHelpers;
 abstract class DatabaseDataMapperBase extends DataMapperBase
 {
     public $cacheTime = null;
+    public $cacheTimeOverride = false;
+    public $ignoreCacheForNextQuery = false;
 
     /**
      * @var $databaseManager DatabaseManager
@@ -52,7 +55,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
 
     /**
      * @param int[] $ids
-     * @return null|EntityInterface|EntityInterface[]
+     * @return EntityInterface[]
      */
     public function getMany($ids)
     {
@@ -60,7 +63,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
         // the ones that don't already exist.
 
         $entitiesAlreadyInIdentityMap = $this->identityMap->getMany(get_class($this->entity()), $ids);
-        $ids = array_diff(RailmapHelpers::entityArrayColumn($entitiesAlreadyInIdentityMap, 'getId'), $ids);
+        $ids = array_diff($ids, RailmapHelpers::entityArrayColumn($entitiesAlreadyInIdentityMap, 'getId'));
 
         // If all the requested entities are already in the map we can just return them
         if (empty($ids)) {
@@ -71,7 +74,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
 
         // This checks if the query is cache and returns the cached results if it is,
         // or it actually queries the database.
-        $rows = $this->executeQueryOrGetCached(
+        $results = $this->executeQueryOrGetCached(
             $query,
             function (Builder $query) {
                 return $query->get();
@@ -81,7 +84,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
         $entities = [];
 
         // Build the actual entities from the row data
-        foreach ($rows as $row) {
+        foreach ($results as $row) {
             $entity = $this->entity();
             $entity->fill($this->afterGet((array)$row));
 
@@ -94,6 +97,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
 
         // Make sure we also include any identities that were already in the map
         $entities = array_merge($entities, $entitiesAlreadyInIdentityMap);
+        $entities = array_combine(RailmapHelpers::entityArrayColumn($entities, 'getId'), $entities);
 
         // This restores the results to the original order of how the ids were passed in
         $orderedEntities = [];
@@ -157,7 +161,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
     {
         $query = $queryCallback($this->gettingQuery());
 
-        $rows = $this->executeQueryOrGetCached(
+        $results = $this->executeQueryOrGetCached(
             $query,
             function (Builder $query) {
                 return $query->get();
@@ -166,7 +170,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
 
         $entities = [];
 
-        foreach ($rows as $row) {
+        foreach ($results as $row) {
             $entity = $this->entity();
             $entity->fill($this->afterGet((array)$row));
 
@@ -759,19 +763,53 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
     /**
      * @param Builder $query
      * @param callable $executeCallback
-     * @return array|int|string|boolean
+     * @return Collection|array|int|string|boolean
      */
     public function executeQueryOrGetCached(Builder $query, callable $executeCallback)
     {
         $cacheKey = $this->generateQueryCacheKey($query);
 
-        if (!is_null($this->cacheTime) && $this->cacheRepository()->has($cacheKey)) {
-            $rows = $this->cacheRepository()->get($cacheKey);
+        if ($this->ignoreCacheForNextQuery === false &&
+            !is_null($this->cacheTime) &&
+            $this->cacheRepository()->has($cacheKey)
+        ) {
+            $results = $this->cacheRepository()->get($cacheKey);
         } else {
-            $rows = $executeCallback($query)->toArray();
-            $this->cacheRepository()->put($cacheKey, $rows, $this->cacheTime);
+            $results = $executeCallback($query);
+
+            $this->cacheRepository()->put(
+                $cacheKey,
+                $results,
+                $this->cacheTimeOverride === false ? $this->cacheTime :
+                    $this->cacheTimeOverride
+            );
         }
 
-        return $rows;
+        // Cache overrides stays for a single query call
+        $this->cacheTimeOverride = false;
+        $this->ignoreCacheForNextQuery = false;
+
+        return $results;
+    }
+
+    /**
+     * @param int $timeInSeconds
+     * @return $this
+     */
+    public function cacheTime($timeInSeconds)
+    {
+        $this->cacheTimeOverride = $timeInSeconds;
+
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    public function ignoreCache()
+    {
+        $this->ignoreCacheForNextQuery = true;
+
+        return $this;
     }
 }
