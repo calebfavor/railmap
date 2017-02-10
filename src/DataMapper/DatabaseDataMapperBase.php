@@ -2,7 +2,6 @@
 
 namespace Railroad\Railmap\DataMapper;
 
-use ArrayAccess;
 use Carbon\Carbon;
 use Illuminate\Cache\Repository as CacheRepository;
 use Illuminate\Database\DatabaseManager;
@@ -22,6 +21,8 @@ use Railroad\Railmap\Helpers\RailmapHelpers;
 
 abstract class DatabaseDataMapperBase extends DataMapperBase
 {
+    public $cacheTime = null;
+
     /**
      * @var $databaseManager DatabaseManager
      */
@@ -32,8 +33,6 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
      */
     protected $cacheRepository;
 
-    public $cacheTime;
-
     public function __construct()
     {
         parent::__construct();
@@ -43,164 +42,140 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
     }
 
     /**
-     * @param int|int[] $idOrIds
-     * @return null|EntityInterface|EntityInterface[]
+     * @param int $id
+     * @return null|EntityInterface
      */
-    public function get($idOrIds)
+    public function get($id)
     {
-        if (is_array($idOrIds)) {
-            $entities = $this->identityMap->getMany(get_class($this->entity()), $idOrIds);
-
-            $idOrIds = array_diff(RailmapHelpers::entityArrayColumn($entities, 'getId'), $idOrIds);
-
-            if (empty($idOrIds)) {
-                return $entities;
-            }
-
-            $query = $this->gettingQuery()->whereIn($this->table . '.id', $idOrIds);
-            $cacheKey = $this->generateQueryCacheKey($query);
-
-            if (!is_null($this->cacheTime) && $this->cacheRepository()->has($cacheKey)) {
-                $rows = $this->cacheRepository()->get($cacheKey);
-            } else {
-                $rows = $query->get()->toArray();
-                $this->cacheRepository()->put($cacheKey, $rows, $this->cacheTime);
-            }
-
-            foreach ($rows as $row) {
-                $entity = $this->entity();
-                $entity->fill($this->afterGet((array)$row));
-
-                $entity = $this->identityMap->getOrStore($entity->getId(), $entity);
-
-                $entities[$entity->getId()] = $entity;
-            }
-
-            $orderedEntities = [];
-
-            foreach ($idOrIds as $id) {
-                if (!empty($entities[$id])) {
-                    $orderedEntities[] = $entities[$id];
-                }
-            }
-
-            return $this->processWithLinks($orderedEntities);
-        }
-
-        $entity = $this->identityMap->get(get_class($this->entity()), $idOrIds);
-
-        if (!empty($entity)) {
-            return $entity;
-        }
-
-        $row = $this->gettingQuery()->where($this->table . '.id', '=', $idOrIds)->first();
-
-        if (!empty($row)) {
-            $entity = $this->entity();
-            $entity->fill($this->afterGet((array)$row));
-
-            $entity = $this->identityMap->getOrStore($entity->getId(), $entity);
-
-            return $this->processWithLinks($entity);
-        }
-
-        return null;
+        return $this->getMany([$id])[0] ?? null;
     }
 
     /**
-     * $queryCallback MUST return a query object, NOT rows.
-     *
+     * @param int[] $ids
+     * @return null|EntityInterface|EntityInterface[]
+     */
+    public function getMany($ids)
+    {
+        // First we check if any of the ids already exist in the identity map, if they do we only pull
+        // the ones that don't already exist.
+
+        $entitiesAlreadyInIdentityMap = $this->identityMap->getMany(get_class($this->entity()), $ids);
+        $ids = array_diff(RailmapHelpers::entityArrayColumn($entitiesAlreadyInIdentityMap, 'getId'), $ids);
+
+        // If all the requested entities are already in the map we can just return them
+        if (empty($ids)) {
+            return $entitiesAlreadyInIdentityMap;
+        }
+
+        $query = $this->gettingQuery()->whereIn($this->table . '.id', $ids);
+
+        // This checks if the query is cache and returns the cached results if it is,
+        // or it actually queries the database.
+        $rows = $this->executeQueryOrGetCached(
+            $query,
+            function (Builder $query) {
+                return $query->get();
+            }
+        );
+
+        $entities = [];
+
+        // Build the actual entities from the row data
+        foreach ($rows as $row) {
+            $entity = $this->entity();
+            $entity->fill($this->afterGet((array)$row));
+
+            // Since we are already filtering entities that exist we dont need to check if it exists in the
+            // identity map before storing it.
+            $this->identityMap->store($entity, $entity->getId());
+
+            $entities[$entity->getId()] = $entity;
+        }
+
+        // Make sure we also include any identities that were already in the map
+        $entities = array_merge($entities, $entitiesAlreadyInIdentityMap);
+
+        // This restores the results to the original order of how the ids were passed in
+        $orderedEntities = [];
+
+        foreach ($ids as $id) {
+            if (!empty($entities[$id])) {
+                $orderedEntities[] = $entities[$id];
+            }
+        }
+
+        // Process all the links that are always pulled and return final entities
+        return $this->processWithLinks($orderedEntities);
+    }
+
+    /**
      * @param callable|null $queryCallback
      * @return int
      */
     public function count(callable $queryCallback = null)
     {
+        $query = $this->gettingQuery();
+
         if (is_callable($queryCallback)) {
-            $query = $queryCallback($this->gettingQuery());
-        } else {
-            $query = $this->gettingQuery();
+            $query = $queryCallback($query);
         }
 
-        $cacheKey = $this->generateQueryCacheKey($query);
-
-        if (!is_null($this->cacheTime) && $this->cacheRepository()->has($cacheKey)) {
-            return $this->cacheRepository()->get($cacheKey);
-        } else {
-            $count = $query->count();
-            $this->cacheRepository()->put($cacheKey, $count, $this->cacheTime);
-            return $count;
-        }
+        return $this->executeQueryOrGetCached(
+            $query,
+            function (Builder $query) {
+                return $query->count();
+            }
+        );
     }
 
     /**
-     * $queryCallback MUST return a query object, NOT rows.
-     *
      * @param callable|null $queryCallback
-     * @return int
+     * @return boolean
      */
     public function exists(callable $queryCallback = null)
     {
+        $query = $this->gettingQuery();
+
         if (is_callable($queryCallback)) {
-            $query = $queryCallback($this->gettingQuery());
-        } else {
-            $query = $this->gettingQuery();
+            $query = $queryCallback($query);
         }
 
-        $cacheKey = $this->generateQueryCacheKey($query);
-
-        if (!is_null($this->cacheTime) && $this->cacheRepository()->has($cacheKey)) {
-            return $this->cacheRepository()->get($cacheKey);
-        } else {
-            $exists = $query->exists();
-            $this->cacheRepository()->put($cacheKey, $exists, $this->cacheTime);
-            return $exists;
-        }
+        return $this->executeQueryOrGetCached(
+            $query,
+            function (Builder $query) {
+                return $query->exists();
+            }
+        );
     }
 
     /**
      * @param callable $queryCallback
      * @param bool $forceArrayReturn
-     * @return EntityInterface|EntityInterface[]
+     * @return EntityInterface[]
      */
     public function getWithQuery(callable $queryCallback, $forceArrayReturn = false)
     {
         $query = $queryCallback($this->gettingQuery());
-        $cacheKey = $this->generateQueryCacheKey($query);
 
-        if (!is_null($this->cacheTime) && $this->cacheRepository()->has($cacheKey)) {
-            $rows = $this->cacheRepository()->get($cacheKey);
-        } else {
-            $rows = $query->get();
-            $this->cacheRepository()->put($cacheKey, $rows, $this->cacheTime);
+        $rows = $this->executeQueryOrGetCached(
+            $query,
+            function (Builder $query) {
+                return $query->get();
+            }
+        );
+
+        $entities = [];
+
+        foreach ($rows as $row) {
+            $entity = $this->entity();
+            $entity->fill($this->afterGet((array)$row));
+
+            $entity = $this->identityMap->getOrStore($entity->getId(), $entity);
+
+            $entities[] = $entity;
         }
 
-        if (is_array($rows) || $rows instanceof ArrayAccess) {
-            $entities = [];
-
-            foreach ($rows as $row) {
-                $entity = $this->entity();
-                $entity->fill($this->afterGet((array)$row));
-
-                $entity = $this->identityMap->getOrStore($entity->getId(), $entity);
-
-                $entities[] = $entity;
-            }
-
-            return $this->processWithLinks($entities);
-        } else {
-            if (!empty($rows)) {
-                $entity = $this->entity();
-                $entity->fill($this->afterGet((array)$rows));
-
-                $entity = $this->identityMap->getOrStore($entity->getId(), $entity);
-
-                $entity = $this->processWithLinks($entity);
-
-                return $forceArrayReturn ? [$entity] : $entity;
-            }
-        }
-
-        return null;
+        return $this->processWithLinks($entities);
     }
 
     /**
@@ -212,12 +187,12 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
 
         $query->from($this->table);
 
-        // soft deletes
+        // If the entity has soft deletes, we only want to pull the non-soft deleted rows
         if (isset(array_flip($this->mapTo())['deleted_at'])) {
             $query->whereNull($this->table . '.deleted_at');
         }
 
-        // versioned
+        // If the entity has version-ing, we only want to pull version masters
         if (isset(array_flip($this->mapTo())['version_master_id'])) {
             $query->whereNull($this->table . '.version_master_id');
         }
@@ -316,7 +291,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
      *
      * @param EntityInterface $entity
      * @param string $dataKeyPrefix
-     * @return []
+     * @return array
      */
     public function extract(EntityInterface $entity, $dataKeyPrefix = '')
     {
@@ -549,8 +524,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
                     $foreignDataMapper->mapFrom()[$link->foreignEntityLinkProperty],
                     $localLinkValues
                 );
-            },
-            true
+            }
         );
 
         if (empty($linkedEntities)) {
@@ -613,8 +587,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
                         'get' . ucwords($link->localEntityLinkProperty)
                     )
                 )->orderBy($link->sortByForeignColumn, $link->sortByForeignDirection);
-            },
-            true
+            }
         );
 
         if (empty($linkedEntities)) {
@@ -689,8 +662,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
                         'get' . ucwords($link->localEntityLinkProperty)
                     )
                 );
-            },
-            true
+            }
         );
 
         if (empty($linkEntities)) {
@@ -713,8 +685,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
                         'get' . ucwords($link->pivotForeignEntityLinkProperty)
                     )
                 )->orderBy($link->sortByForeignColumn, $link->sortByForeignDirection);
-            },
-            true
+            }
         );
 
         if (empty($foreignEntities)) {
@@ -783,5 +754,24 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
     {
         $tag = get_class($this);
         return $this->cacheRepository->tags([$tag]);
+    }
+
+    /**
+     * @param Builder $query
+     * @param callable $executeCallback
+     * @return array|int|string|boolean
+     */
+    public function executeQueryOrGetCached(Builder $query, callable $executeCallback)
+    {
+        $cacheKey = $this->generateQueryCacheKey($query);
+
+        if (!is_null($this->cacheTime) && $this->cacheRepository()->has($cacheKey)) {
+            $rows = $this->cacheRepository()->get($cacheKey);
+        } else {
+            $rows = $executeCallback($query)->toArray();
+            $this->cacheRepository()->put($cacheKey, $rows, $this->cacheTime);
+        }
+
+        return $rows;
     }
 }

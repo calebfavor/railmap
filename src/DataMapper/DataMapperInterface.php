@@ -4,30 +4,33 @@ namespace Railroad\Railmap\DataMapper;
 
 use Railroad\Railmap\Entity\EntityInterface;
 use Railroad\Railmap\Entity\Links\LinkBase;
-use Railroad\Railmap\Entity\Links\LinkInterface;
 
 interface DataMapperInterface
 {
+    /**
+     * @param int $id
+     * @return null|EntityInterface
+     */
+    public function get($id);
 
     /**
-     * @param int|int[] $idOrIds
-     * @return null|EntityInterface|EntityInterface[]
+     * @param int[] $ids
+     * @return EntityInterface[]
      */
-    public function get($idOrIds);
+    public function getMany($ids);
 
     /**
      * Callback will be called with argument set to return value of $this->gettingQuery()
-     * Must return array (or arrayable) of rows or single row (key => value array)
+     * $queryCallback MUST return a query object.
      *
      * @param callable $queryCallback
-     * @param bool $forceArrayReturn
-     * @return EntityInterface|EntityInterface[]
+     * @return EntityInterface[]
      */
-    public function getWithQuery(callable $queryCallback, $forceArrayReturn = false);
+    public function getWithQuery(callable $queryCallback);
 
     /**
      * Callback will be called with argument set to return value of $this->gettingQuery()
-     * $queryCallback MUST return a query object, NOT rows.
+     * $queryCallback MUST return a query object.
      *
      * @param callable|null $queryCallback
      * @return int
@@ -36,7 +39,7 @@ interface DataMapperInterface
 
     /**
      * Callback will be called with argument set to return value of $this->gettingQuery()
-     * $queryCallback MUST return a query object, NOT rows.
+     * $queryCallback MUST return a query object.
      *
      * @param callable|null $queryCallback
      * @return boolean

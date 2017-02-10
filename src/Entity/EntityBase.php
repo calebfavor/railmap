@@ -265,6 +265,8 @@ abstract class EntityBase implements EntityInterface
                             }
 
                             return $query->where(
+                                $foreignDataMapper->table .
+                                '.' .
                                 $foreignDataMapper->mapTo()[$link->foreignEntityLinkProperty],
                                 $localEntityLinkValue
                             )->orderBy($link->sortByForeignColumn, $link->sortByForeignDirection);
@@ -339,6 +341,8 @@ abstract class EntityBase implements EntityInterface
                             }
 
                             return $query->where(
+                                $linkDataMapper->table .
+                                '.' .
                                 $linkDataMapper->mapTo()[$link->pivotLocalEntityLinkProperty],
                                 $localEntityLinkValue
                             );
