@@ -178,7 +178,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
      * @param string $columns
      * @return EntityInterface[]
      */
-    public function getWithQuery(callable $queryCallback, $columns = '*')
+    public function getWithQuery(callable $queryCallback, $columns = ['*'])
     {
         $query = $queryCallback($this->gettingQuery());
 
