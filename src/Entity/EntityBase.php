@@ -270,8 +270,7 @@ abstract class EntityBase implements EntityInterface
                                 $foreignDataMapper->mapTo()[$link->foreignEntityLinkProperty],
                                 $localEntityLinkValue
                             )->orderBy($link->sortByForeignColumn, $link->sortByForeignDirection);
-                        },
-                        true
+                        }
                     );
 
                     if (empty($foreignEntities)) {
@@ -346,8 +345,7 @@ abstract class EntityBase implements EntityInterface
                                 $linkDataMapper->mapTo()[$link->pivotLocalEntityLinkProperty],
                                 $localEntityLinkValue
                             );
-                        },
-                        true
+                        }
                     );
 
                     if (empty($linkEntities)) {
@@ -368,8 +366,7 @@ abstract class EntityBase implements EntityInterface
                                     'get' . ucwords($link->pivotForeignEntityLinkProperty)
                                 )
                             )->orderBy($link->sortByForeignColumn, $link->sortByForeignDirection);
-                        },
-                        true
+                        }
                     );
 
                     if (empty($foreignEntities)) {

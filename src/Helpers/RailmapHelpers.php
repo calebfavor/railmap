@@ -25,6 +25,24 @@ class RailmapHelpers
     }
 
     /**
+     * @param array $objects
+     * @param $property
+     * @return array
+     */
+    public static function objectArrayColumn(array $objects, $property)
+    {
+        $values = [];
+
+        foreach ($objects as $object) {
+            if (property_exists($object, $property)) {
+                $values[] = $object->$property;
+            }
+        }
+
+        return $values;
+    }
+
+    /**
      * @param EntityInterface[] $entities
      * @param $attribute
      * @param $direction

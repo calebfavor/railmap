@@ -153,18 +153,39 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
     }
 
     /**
+     * @param callable|null $queryCallback
+     * @param $column
+     * @return array
+     */
+    public function list(callable $queryCallback = null, $column = 'id')
+    {
+        $query = $this->gettingQuery();
+
+        if (is_callable($queryCallback)) {
+            $query = $queryCallback($query);
+        }
+
+        return $this->executeQueryOrGetCached(
+            $query,
+            function (Builder $query) use ($column) {
+                return RailmapHelpers::objectArrayColumn($query->get([$column])->all(), 'id');
+            }
+        );
+    }
+
+    /**
      * @param callable $queryCallback
-     * @param bool $forceArrayReturn
+     * @param string $columns
      * @return EntityInterface[]
      */
-    public function getWithQuery(callable $queryCallback, $forceArrayReturn = false)
+    public function getWithQuery(callable $queryCallback, $columns = '*')
     {
         $query = $queryCallback($this->gettingQuery());
 
         $results = $this->executeQueryOrGetCached(
             $query,
-            function (Builder $query) {
-                return $query->get();
+            function (Builder $query) use ($columns) {
+                return $query->get($columns);
             }
         );
 
