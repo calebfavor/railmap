@@ -114,9 +114,10 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
 
     /**
      * @param callable|null $queryCallback
+     * @param string $column
      * @return int
      */
-    public function count(callable $queryCallback = null)
+    public function count(callable $queryCallback = null, $column = '*')
     {
         $query = $this->gettingQuery();
 
@@ -126,8 +127,8 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
 
         return $this->executeQueryOrGetCached(
             $query,
-            function (Builder $query) {
-                return $query->count();
+            function (Builder $query) use ($column) {
+                return $query->count($column);
             }
         );
     }
@@ -832,5 +833,13 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
         $this->ignoreCacheForNextQuery = true;
 
         return $this;
+    }
+
+    /**
+     * @return DatabaseManager
+     */
+    public function databaseManager()
+    {
+        return $this->databaseManager;
     }
 }
