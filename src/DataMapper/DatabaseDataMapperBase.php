@@ -408,9 +408,8 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
         }
     }
 
-    /** |EntityInterface[]|integer|integer[]
-     *
-     * @param EntityInterface[] $entityOfEntitiesOrIdIds
+    /**
+     * @param EntityInterface|EntityInterface[]|integer|integer[] $entityOfEntitiesOrIdIds
      */
     public function destroy($entityOfEntitiesOrIdIds)
     {
