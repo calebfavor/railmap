@@ -50,7 +50,7 @@ abstract class EntityBase implements EntityInterface
      */
     public function getOwningDataMapper()
     {
-        return $this->owningDataMapper;
+        return app($this->owningDataMapper);
     }
 
     /**
@@ -58,7 +58,7 @@ abstract class EntityBase implements EntityInterface
      */
     public function setOwningDataMapper(DataMapperBase $owningDataMapper)
     {
-        $this->owningDataMapper = $owningDataMapper;
+        $this->owningDataMapper = get_class($owningDataMapper);
     }
 
     /**
@@ -83,7 +83,7 @@ abstract class EntityBase implements EntityInterface
      */
     public function fill(array $data, $dataKeyPrefix = '')
     {
-        $this->owningDataMapper->fill($this, $data, $dataKeyPrefix);
+        $this->getOwningDataMapper()->fill($this, $data, $dataKeyPrefix);
     }
 
     /**
@@ -92,7 +92,7 @@ abstract class EntityBase implements EntityInterface
      */
     public function extract($dataKeyPrefix = '')
     {
-        return $this->owningDataMapper->extract($this, $dataKeyPrefix);
+        return $this->getOwningDataMapper()->extract($this, $dataKeyPrefix);
     }
 
     /**
