@@ -50,7 +50,7 @@ class DataMapperPropertyTypeService
             return json_encode($stringOrArray);
         }
 
-        return json_decode($stringOrArray);
+        return json_decode($stringOrArray, true);
     }
 
     /**
