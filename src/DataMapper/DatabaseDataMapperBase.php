@@ -423,8 +423,12 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
 
         $entityOfEntitiesOrIdIds = array_filter($entityOfEntitiesOrIdIds);
 
-        if (!is_object(reset($entityOfEntitiesOrIdIds))) {
-            $entitiesToDelete = $this->get($entityOfEntitiesOrIdIds);
+        if (is_array($entityOfEntitiesOrIdIds)) {
+            if (!is_object(reset($entityOfEntitiesOrIdIds))) {
+                $entitiesToDelete = $this->getMany($entityOfEntitiesOrIdIds);
+            } else {
+                $entitiesToDelete = [$this->get($entityOfEntitiesOrIdIds)];
+            }
         } else {
             $entitiesToDelete = $entityOfEntitiesOrIdIds;
         }
@@ -463,12 +467,12 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
             }
         }
 
-        foreach ($entityOfEntitiesOrIdIds as $entityOrId) {
-            if (!is_object($entityOrId)) {
-                $entityOrId = $this->identityMap->remove(get_class($this->entity()), $entityOrId);
+        foreach ($entitiesToDelete as $entityToDelete) {
+            if (!is_object($entityToDelete)) {
+                $this->identityMap->remove(get_class($this->entity()), $entityToDelete->getId());
             }
 
-            $this->dispatcher()->fire(new EntityDestroyed($entityOrId));
+            $this->dispatcher()->fire(new EntityDestroyed($entityToDelete));
         }
     }
 

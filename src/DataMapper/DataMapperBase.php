@@ -29,6 +29,14 @@ abstract class DataMapperBase implements DataMapperInterface
     public function __construct()
     {
         $this->identityMap = app(IdentityMap::class);
+
+        $thisRef = $this;
+
+        // All data mappers must be singletons
+        // We MUST use a callback here
+        app()->singleton(get_class($this), function() use ($thisRef) {
+            return $thisRef;
+        });
     }
 
     public function mapFrom()
