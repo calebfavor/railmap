@@ -427,7 +427,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
             if (!is_object(reset($entityOfEntitiesOrIdIds))) {
                 $entitiesToDelete = $this->getMany($entityOfEntitiesOrIdIds);
             } else {
-                $entitiesToDelete = [$this->get($entityOfEntitiesOrIdIds)];
+                $entitiesToDelete = $entityOfEntitiesOrIdIds;
             }
         } else {
             $entitiesToDelete = $entityOfEntitiesOrIdIds;
