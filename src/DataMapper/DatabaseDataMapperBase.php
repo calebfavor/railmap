@@ -169,7 +169,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
         return $this->executeQueryOrGetCached(
             $query,
             function (Builder $query) use ($column) {
-                return RailmapHelpers::objectArrayColumn($query->get([$column])->all(), 'id');
+                return RailmapHelpers::objectArrayColumn($query->get([$column])->all(), $column);
             }
         );
     }
