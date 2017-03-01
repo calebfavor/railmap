@@ -41,7 +41,7 @@ abstract class DatabaseDataMapperBase extends DataMapperBase
         parent::__construct();
 
         $this->databaseManager = app(DatabaseManager::class);
-        $this->cacheRepository = app(CacheRepository ::class);
+        $this->cacheRepository = app(CacheRepository::class);
     }
 
     /**
