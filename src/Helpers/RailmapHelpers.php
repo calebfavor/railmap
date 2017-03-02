@@ -44,6 +44,27 @@ class RailmapHelpers
 
     /**
      * @param EntityInterface[] $entities
+     * @param $property
+     * @return array
+     */
+    public static function groupEntitiesByColumn(array $entities, $property)
+    {
+        $groupedEntities = [];
+
+        foreach ($entities as $entity) {
+            $getMethod = 'get' . ucwords($property);
+
+            if (method_exists($entity, $getMethod) || method_exists($entity, '__call')) {
+                $groupedEntities[$entity->$getMethod()][] = $entity;
+            }
+        }
+
+        return $groupedEntities;
+    }
+
+
+    /**
+     * @param EntityInterface[] $entities
      * @param $attribute
      * @param $direction
      * @return array|EntityInterface[]
